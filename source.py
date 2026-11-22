@@ -39,7 +39,7 @@
 # 
 # The DHS data contains household information for each individual, while the World Bank and UNESCO datasets contain national-level economic and education indicators. I will aggregate the DHS household data by year (2022) and region, and connect the regional average to the World Bank and UNESCO datasets by year(2022) and country (Nepal) as the matching key.
 
-# In[2]:
+# In[1]:
 
 
 import pandas as pd
@@ -95,7 +95,7 @@ print("2. World Bank API Shape:", worldbank_df.shape)
 print("3. UNESCO / SDG Web Data Shape:", unesco_df.shape)
 
 
-# In[6]:
+# In[2]:
 
 
 ## Data Inspection
@@ -120,7 +120,7 @@ print("\nUNESCO sourced Priamry Completion Dataset:")
 display(unesco_df)
 
 
-# In[12]:
+# In[3]:
 
 
 #MissinG Values in DHS dataset
@@ -156,7 +156,7 @@ for column in important_columns:
 # 
 # The DHS is my primary source of demographic and household information. The World Bank indicator will support the context about Nepal's economic and education conditions. Because these data represent different levels of information, the indicator will be analyzed separately from individual DHS records.
 
-# In[17]:
+# In[4]:
 
 
 ## Rural Dataset
@@ -235,7 +235,7 @@ display(rural_eda.head())
 # 
 # I have renamed the important variables for clarity and scaled the wealth score by dividing it by 100,00. 
 
-# In[21]:
+# In[5]:
 
 
 # Visualization 1: Education-Level Distribution in Rural Nepal
@@ -265,7 +265,7 @@ plt.show
 # 
 # This bar chart shows the distribution of education level within rural Nepal. The chart helps show which education level is the most common and which is less represented. Records that do not have missing education level values are excluded. This is the starting point to examine whether there is a correlation with education achievement and household health and access to basic services.
 
-# In[24]:
+# In[6]:
 
 
 # Visualization 2: Household Wealth by Education Level
@@ -295,7 +295,7 @@ plt.show
 # 
 # This boxplot compares the wealth index based on education achievement in rural Nepal. This shows the difference in each category in the median wealth score. The boxplots show that the higher the education, the higher the wealth index.
 
-# In[25]:
+# In[7]:
 
 
 # Visualization 3: Electricity Access by Education Level
@@ -336,7 +336,7 @@ plt.show()
 # 
 # The stacked bar chart compares electricity access across all education level categories in rural Nepal. The percentages show the proportion with and without electricity in each group. The visualization shows that the higher the education, the greater the electricity access they received.
 
-# In[39]:
+# In[8]:
 
 
 # Visualization 4: Drinking Water Sources by Education Level
@@ -371,7 +371,7 @@ plt.show()
 # ## 2. Data Cleaning 
 # In this section, I have prepared the Nepal DHS 2022 data for analysis. I noticed that there were missing values, duplicate records, unusual values, and data type issues. I removed columns that had no data, checked for duplicate records, cleaned up variable names, and prepared a subset of rural records for the reach questions. Rather than automatically replacing or deleting scores, I maintained the missing values and usual records. These cleaning decisions improved the consistency of the data while maintaining the information.
 
-# In[44]:
+# In[9]:
 
 
 # 2.1 Create a copy and removed empty columns
@@ -400,7 +400,7 @@ for column in important_columns:
        print(f"{column}:Column not found")   
 
 
-# In[64]:
+# In[10]:
 
 
 # 2.2 Rename Variables and Scale Wealth Index
@@ -418,11 +418,10 @@ dhs_clean=dhs_clean.rename(
     columns=rename_columns
 )
 
-dhs_clean["wealth_index_score"]=dhs["hv271"]
+dhs_clean["wealth_index_score"]=pd.to_numeric(
+    dhs_clean["wealth_index_score"], errors="coerce")
 dhs_clean["wealth_index_score_scaled"]=(
-    pd.to_numeric(dhs["hv271"], 
-                  errors="coerce") / 100000
-
+    dhs_clean["wealth_index_score"] / 100000
 )
 print("Updated dataset shape:",dhs_clean.shape)
 
@@ -442,7 +441,7 @@ display(
 )
 
 
-# In[68]:
+# In[11]:
 
 
 # 2.3 prepare rural dataset
@@ -467,7 +466,7 @@ print("\nMissing Values in rural dataset:")
 display(rural_clean[rural_columns].isna().sum())
 
 
-# In[69]:
+# In[12]:
 
 
 ## 2.4 Investigate Missing Edcuation Values
@@ -492,7 +491,7 @@ display(
 )
 
 
-# In[75]:
+# In[13]:
 
 
 # 2.5 Preapre date fro education level analysis
@@ -511,7 +510,7 @@ print("\nEducation level categories:")
 display(rural_eda["education_level"].value_counts())
 
 
-# In[77]:
+# In[14]:
 
 
 #2.6 finally edcaution analysis dataset
@@ -529,7 +528,7 @@ print("\nMissing education levels:")
 print(rural_analysis["education_level"].isna().sum())
 
 
-# In[80]:
+# In[15]:
 
 
 # 2.7 finally data check
@@ -569,6 +568,338 @@ display(rural_analysis["education_level"].value_counts())
 # 3.3 How are you planning to address these challenges?
 # 
 # I plan to record unknown education levels and exclude the "don't know" from the model. I will change categorical variables to numerical values before training the model. I also plan to compare the model's accuracy with a baseline model using precision and recall to evaluate the predictions. If possible, I want to report the household identifier when splitting the data. Rather than seeing it as cause and effect, I will see the results as associations.
+# 
+# 1. Ask
+#  The goal of this project is to see whether educational attainment is associated with the quality of life in rural communities in Nepal. I want to get a better understanding of whether people with higher educational attainment tend to have better housing conditions, like better health or access to basic services.
+# 
+# 2. Prepare
+# I will use the Nepal Demographic and Health Survey (2022) as my main dataset. I will focus on rural areas and use education level as the target variable. Predictor variables will consist of health score, drinking water source, and electricity access. Any records with missing or unknown education level will be excluded. I will continue to use the dataset split into training and testing sets while keeping individuals from the same household together.
+# 
+# 3. Process
+# I will use scikit-learn pipelines to prepare the dataset for machine learning. Missing numerical values will be replaced using the median, and missing categorical values will be handled using the most frequent value.
+# 
+# 4. Analyze
+# I will use multiple classification models like Decision Tree Classifier, Random Forest Classifier, Logistic Regression, and baseline models. My main model will be the Decision Tree. I will also review which household characteristics contribute the most to predicting educational achievement.
+# 
+# 5. Evaluate
+# I will evaluate the model using F1 score, recall, precision, and accuracy. I will correlate this performance with the testing dataset and use confusion matrices to see how accurately each model will classify the different education levels.
+# 
+# 6. Share
+# The summary will consist of results and discuss whether household wealth and access to basic services are related to education achievement in rural Nepal. I will explain the dataset limitations and interpret the findings as associations rather than cause and effect.
+
+# 3.1  Prepare Machine Learning Dataset
+# 
+# In this section, the cleaned rural Nepal DHS dataset is being prepared for machine learning classification. The main goal is to see if living conditions can help explain differences in educational achievement. The prepared dataset is going to be used to train and evaluate multiple classification models. 
+# 
+
+# In[16]:
+
+
+# 3.1 Import Machine Learning Libraries
+import numpy as np
+
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    ConfusionMatrixDisplay,
+    confusion_matrix,
+    classification_report
+)   
+
+print("Machine Learning Libraries Imported Successfully")
+
+
+# 3.2 Selecting Targets and Features
+# 
+# Education level is a key variable as it examines the relationship with household condition. The features selected for the classification models include: wealth index score, drinking water source, and electricity access. These variables represent the different aspects of the living condition. 
+# 
+
+# In[17]:
+
+
+#3.2 Prepare Features and Target Variables
+
+ml_df=rural_analysis.copy()
+
+feature_columns=[
+    "wealth_index_score_scaled",
+    "drinking_water_source",
+    "electricity_access"
+]
+
+#create feature and target variables
+
+X=ml_df[feature_columns].copy()
+y=ml_df["education_level"].copy()
+
+#convert wealth index score to numeric
+X["wealth_index_score_scaled"]=pd.to_numeric(
+    X["wealth_index_score_scaled"], errors="coerce"
+)
+
+#Create household groups by cluster household number
+groups=(
+    ml_df["hv001"].astype(str)
+    +"_"
+    +ml_df["hv002"].astype(str)
+)
+print("Dataset Shape:",ml_df.shape)
+print("Feature Shape:",X.shape)
+print("Target Shape:",y.shape)
+
+print("\nEducation Categories:")
+display(y.value_counts())
+
+print("\nMissing Values in Features:")
+display(X.isna().sum())
+
+
+# 3.3 Testing Data and Split Training
+# 
+# The dataset is split into two sets: training and testing. These sets are split 80/20. The GroupShuffleSplit is used to make sure members in the same households are not appearing in both sets. This makes sure the models are evaluated on data they are not trained on.
+
+# In[18]:
+
+
+#3.3 Split Data into Training and Testing Sets
+group_split=GroupShuffleSplit(
+    n_splits=1,
+    test_size=0.2,
+    random_state=42
+)
+
+train_idx, test_idx = next(group_split.split(X, y, groups=groups))
+x_train, x_test = X.iloc[train_idx].copy(), X.iloc[test_idx].copy()
+y_train, y_test = y.iloc[train_idx].copy(), y.iloc[test_idx].copy()
+
+group_train, group_test = (
+    groups.iloc[train_idx].copy(),
+    groups.iloc[test_idx].copy()
+)
+
+print("Training Set Shape:", x_train.shape, y_train.shape)
+print("Testing Set Shape:", x_test.shape, y_test.shape)
+
+print("\nHouseholds appearing in both sets:",
+      len(set(group_train).intersection(set(group_test))))
+
+
+
+# 3.4 Check Class Distribution
+# 
+# For the training and testing datasets, the educational category distribution was checked. The result indicates that basic education has the largest category, while higher education has the lowest representation. The imbalance in the class is important when evaluating the model because some categories can be harder to predict than others.
+
+# In[19]:
+
+
+# 3.4 Check Education Category 
+print("Training Set Education Distribution:")
+display(y_train.value_counts())
+
+print("\nTesting Set Education Distribution:")
+display(y_test.value_counts())
+
+print("\nTraining Education Percentage Distribution:")
+display((y_train.value_counts(normalize=True) * 100).round(2))
+
+print("\nTesting Education Percentage Distribution:")
+display((y_test.value_counts(normalize=True) * 100).round(2))
+
+
+# 3.5 Build Preporcessing Pipeline
+# 
+# Using Scikit-leran to reoare numerical dn catgroeis feurea, i was able to create prepocressin gpioline. For the msiing nuemricla vlues, it was replcaed using medican impiratopn followed by StandardScaler. With msiing catgroical clayes, ti was handled by suing the freuwetes vlaue an donHOtEndcoder. To amke sure the asme preocporssing setps was applied fo the modela dn tersing apip;ine was used.
+
+# In[20]:
+
+
+#3.5 Create Preprocessing Pipelines for Numerical and Categorical Features
+
+#Numerical Features
+numerical_features = x_train.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
+#Categorical Features
+categorical_features = x_train.select_dtypes(include=['object', 'category']).columns.tolist()
+
+#Process numerical data
+numerical_pipeline = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),   
+    ('scaler', StandardScaler())
+])
+
+#Process categorical data
+categorical_pipeline = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='most_frequent')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))
+])
+
+#combine both preprocessing pipelines
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_pipeline, numerical_features),
+        ('cat', categorical_pipeline, categorical_features)
+    ]
+)
+
+print("Preprocessing Pipelines Created Successfully")
+print("\nNumerical Features:", numerical_features)
+print("\nCategorical Features:", categorical_features)
+
+
+# 3.6 Define Classification Models
+# 
+# The four classification models used for the approximation are: Baseline, Logistic Regression, Random Forest, and Decision Tree. Each model uses a different approach to categorize education achievement based on household living conditions. Having multiple models lets us compare performance and see which approach works best with the datasets.
+
+# In[21]:
+
+
+#3.6 Create Classifcation Models
+
+models = {
+    "Baseline": DummyClassifier(strategy='most_frequent', random_state=42),
+    "Logistic Regression": LogisticRegression(max_iter=1000, class_weight='balanced', random_state=42),
+    "Random Forest": RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42),
+    "DecisionTreeClassifier": DecisionTreeClassifier(class_weight='balanced', random_state=42),
+}
+
+print("Classification Models Created Successfully")
+
+
+# 3.7 Train Classification Models
+# 
+# Each classification model has a combination with the preprocessing pipeline and is trained using the training dataset. The models have learned the patterns between the living condition and the education categories. After training, the models will be stored so they can be used to create predictions on the testing datasets. 
+
+# In[22]:
+
+
+#3.7 Train Classfifcation Models
+
+trained_models = {}
+for model_name, model in models.items():
+    # Create a pipeline with preprocessing and the model
+    pipeline = Pipeline(steps=[
+        ('preprocessor', preprocessor),
+        ('classifier', model)
+    ])
+
+    # Train the model
+    pipeline.fit(x_train, y_train)
+
+    # Store the trained model
+    trained_models[model_name] = pipeline
+
+    print(f"{model_name} trained successfully.")
+
+
+# 3.8 Evaluate Classification Model
+# 
+# The trained models were evaluated using the testing dataset to measure how well the predictions for education categories are. For each model, accuracy, weighted precision, weighted recall, and macro F1-score were calculated. These metrics give a different view of the model performance, plus the macro F1-score helps address the imbalance between the education categories.
+
+# In[23]:
+
+
+#3.8 Evaluate Classification Models
+
+results = {}
+for model_name, pipeline in trained_models.items():
+    # Make predictions on the test set
+    y_pred = pipeline.predict(x_test)
+
+    # Calculate evaluation metrics
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+    recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+    macro_f1 = f1_score(y_test, y_pred, average='macro', zero_division=0)
+
+    # Store the results
+    results[model_name] = {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1_score': macro_f1
+    }
+
+    print(f"{model_name} evaluated successfully.")
+
+
+# In[24]:
+
+
+results_df = pd.DataFrame(results).T
+display(results_df.round(3))
+
+
+# 3.9 Classification Reports
+# 
+# The classification report was created to inspect the precision, recall, and F1 score for each education category. With this it can shoe amore detailed view of the model performance than overall accuracy. The report can also show which educational categories were harder for the model to estimate.
+
+# In[25]:
+
+
+#3.9 Classfication Reports
+for model_name, pipeline in trained_models.items():
+    y_pred = pipeline.predict(x_test)
+    print(f"\nClassification Report for {model_name}:")
+    print(classification_report(y_test, y_pred, zero_division=0))
+
+
+# 3.10 Confusion Matrices
+# 
+# The confusion matrix was created to provide a visual overview of the actual and predicted education category for each classification model. The diagonal values show correct predictions, while the values off the diagonal show incorrect classifications. This visualization makes it easier to identify which equation categories the models were most confused about.
+
+# In[26]:
+
+
+#3.10 Confusion Matrices
+for model_name, pipeline in trained_models.items():
+    y_pred = pipeline.predict(x_test)
+    cm = confusion_matrix(y_test, y_pred, labels=pipeline.classes_)
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=pipeline.classes_, yticklabels=pipeline.classes_)
+    plt.title(f'Confusion Matrix for {model_name}')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.show()
+
+
+# 3.11 Select the best model
+# 
+# To select the strongest trained model, the classification model was compared by the macro F1-score. Random Forest was selected because it has the highest macro F1-score. The metric was used to select the model because it gave each education category equal importance.
+
+# In[30]:
+
+
+#3.11 Select Best Model 
+
+model_comparison = results_df.drop(index='Baseline')
+best_model_name = model_comparison['f1_score'].idxmax()
+
+best_model = trained_models[best_model_name]
+
+print(f"Best Model Selected: {best_model_name}")
+print(f"Best Model F1 Score: {results_df.loc[best_model_name, 'f1_score']:.3f}")
+
+
+# 3.12 Final Model Evaluation Summary
+# 
+# There were four classified models that were evaluated with accuracy, precision, recall, and macro F1-score. The models included are Baseline, Logistic Regression, Random Forest, and Decision Tree.
+# 
+# Ultimately, Random Forest was chosen as the best-performing trained model because it has the highest macro F1-score of 0.264 and an accuracy of 0.344. The classification reports and confusion matrices help give additional insight into each model's predictions.
+# 
+# These results suggest that living conditions like household wealth, drinking water source, and electricity access have limited predictive power for education achievement.
 
 # # 4. Prior Feedback and Updates
 # 
@@ -586,7 +917,7 @@ display(rural_analysis["education_level"].value_counts())
 # 📝 <!-- Start Discussing the project here; you can add as many code cells as you need -->
 # I will begin by cleaning and organizing the DHS 2022 data and filtering to focus more on rural households in Nepal. I plan to group participants by their education and compare household wealth, employment status, and access to basic services. I plan to use charts, correlations, and statistics to identify any trends, patterns, or relationships. The DHS will be my main dataset; the World Bank and UNESCO will be used to support the information.
 
-# In[1]:
+# In[ ]:
 
 
 # Start your code here
@@ -599,7 +930,7 @@ display(rural_analysis["education_level"].value_counts())
 # 2. World Bank: https://data.worldbank.org/country/nepal 
 # 3. UNESCO UIS: https://www.uis.unesco.org/en/data/sdg4-country-profiles? 
 
-# In[10]:
+# In[ ]:
 
 
 # ⚠️ Make sure you run this cell at the end of your notebook before every submission!
